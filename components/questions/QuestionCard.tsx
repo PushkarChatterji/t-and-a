@@ -181,6 +181,17 @@ export function QuestionCard({ question, onNext, onSkip, onAnswer, questionIndex
         />
       </div>
 
+      {/* ── Diagram ─────────────────────────────────────────────────────── */}
+      {question.diagram && (
+        <div className="px-6 pb-4 flex justify-center">
+          <div
+            className="rounded-xl border border-slate-200 bg-slate-50 overflow-hidden"
+            style={{ width: 500, height: 500 }}
+            dangerouslySetInnerHTML={{ __html: question.diagram }}
+          />
+        </div>
+      )}
+
       {/* ── Answer options ──────────────────────────────────────────────── */}
       {optionEntries.length > 0 && (
         <div className="px-6 pb-5 space-y-2.5">
