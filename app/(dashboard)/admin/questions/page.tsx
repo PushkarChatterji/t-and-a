@@ -90,12 +90,6 @@ function QuestionBrowser() {
         setTotal(json.data.total);
         setPages(json.data.pages);
         setError('');
-        if (json.data._debug) {
-          console.log('[admin/questions] debug:', json.data._debug);
-          if (json.data.total === 0) {
-            setError(`0 questions found — DB: ${json.data._debug.db}, collection: ${json.data._debug.collection}`);
-          }
-        }
       } else {
         setError(`API error (${res.status}): ${json.error ?? 'unknown'}`);
       }
