@@ -50,6 +50,7 @@ function QuestionBrowser() {
   const [previewQ, setPreviewQ] = useState<QuestionData | null>(null);
   const [editQ, setEditQ] = useState<QuestionData | null>(null);
   const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (authLoading) return;
@@ -88,6 +89,9 @@ function QuestionBrowser() {
         setQuestions(json.data.questions);
         setTotal(json.data.total);
         setPages(json.data.pages);
+        setError('');
+      } else {
+        setError(`API error (${res.status}): ${json.error ?? 'unknown'}`);
       }
     } finally {
       setLoading(false);
@@ -109,6 +113,7 @@ function QuestionBrowser() {
   return (
     <div>
       {message && <div className="mb-3 text-sm px-4 py-2 rounded-lg bg-emerald-50 text-emerald-700">{message}</div>}
+      {error && <div className="mb-3 text-sm px-4 py-2 rounded-lg bg-red-50 text-red-700 font-mono">{error}</div>}
 
       {/* Cascading filters */}
       <div className="flex flex-wrap gap-2 mb-4 items-center">
