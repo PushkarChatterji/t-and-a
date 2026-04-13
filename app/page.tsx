@@ -22,9 +22,6 @@ export default function LandingPage() {
       {/* Hero */}
       <section className="flex-1 flex flex-col items-center justify-center text-center px-6 py-20 bg-gradient-to-b from-indigo-50 to-slate-50">
         <div className="max-w-3xl mx-auto space-y-6">
-          <span className="inline-block text-xs font-semibold tracking-widest text-indigo-500 uppercase">
-            CBSE Class XII Mathematics
-          </span>
           <h1 className="text-4xl sm:text-5xl font-extrabold text-slate-900 leading-tight">
             Master Maths with&nbsp;
             <span className="text-indigo-600">adaptive practice</span>

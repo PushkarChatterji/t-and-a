@@ -27,7 +27,7 @@ interface QuestionList {
   subject: string;
 }
 
-const CBSE_TOPICS = [
+const TOPICS = [
   'Relations and Functions', 'Inverse Trigonometric Functions', 'Matrices', 'Determinants',
   'Continuity and Differentiability', 'Application of Derivatives', 'Integrals',
   'Application of Integrals', 'Differential Equations', 'Vector Algebra',
@@ -198,7 +198,7 @@ export default function EditQuestionListPage() {
               className="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm text-black"
             >
               <option value="">Select topic…</option>
-              {CBSE_TOPICS.map(t => <option key={t} value={t}>{t}</option>)}
+              {TOPICS.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
             <select
               value={selectedDifficulty}

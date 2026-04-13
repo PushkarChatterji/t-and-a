@@ -7,8 +7,8 @@ const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] });
 const geistMono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'EduPortal – CBSE XII Maths Practice',
-  description: 'Practice CBSE Class XII Mathematics with adaptive learning and a 3,000+ question bank.',
+  title: 'EduPortal – Adaptive Maths Practice',
+  description: 'Practice Mathematics with adaptive learning and a 3,000+ question bank.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
