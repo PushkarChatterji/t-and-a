@@ -36,6 +36,9 @@ export const GET = withAuth(async (req: NextRequest) => {
       Question.countDocuments(filter),
     ]);
 
+    const dbName = Question.db?.name ?? 'unknown';
+    console.log(`[GET /api/questions] db=${dbName} collection=${Question.collection.name} filter=${JSON.stringify(filter)} total=${total}`);
+
     // Mongoose Map fields don't serialise via JSON.stringify — flatten them
     const questions = rawQuestions.map(q => ({
       ...q,
@@ -44,7 +47,7 @@ export const GET = withAuth(async (req: NextRequest) => {
         : (q.answer_options ?? {}),
     }));
 
-    return ok({ questions, total, page, limit, pages: Math.ceil(total / limit) });
+    return ok({ questions, total, page, limit, pages: Math.ceil(total / limit), _debug: { db: Question.db?.name, collection: Question.collection.name } });
   } catch (err) {
     console.error('[GET /api/questions]', err);
     return serverError();
