@@ -8,9 +8,10 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 
-const MONGODB_URI = process.env.MONGODB_URI ?? 'mongodb+srv://event-manager:FBTA2XyGHW86Cp89@fraud-detection.gkyvi.mongodb.net/';
+const MONGODB_URI = process.env.MONGODB_URI;
 
 async function main() {
+  if (!MONGODB_URI) throw new Error('MONGODB_URI is not set');
   await mongoose.connect(MONGODB_URI);
   console.log('Connected to MongoDB');
 
