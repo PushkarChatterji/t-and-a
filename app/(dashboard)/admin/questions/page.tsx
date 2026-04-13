@@ -88,7 +88,18 @@ function QuestionBrowser() {
     if (year)  params.set('year', year);
     fetch(`/api/questions/filters?${params}`, { credentials: 'include' })
       .then(r => r.ok ? r.json() : null)
-      .then(json => { if (json?.data) setOpts(json.data); })
+      .then(json => {
+        if (json?.data) {
+          const d = json.data;
+          setOpts({
+            boards:       Array.isArray(d.boards)       ? d.boards       : [],
+            years:        Array.isArray(d.years)        ? d.years        : [],
+            topics:       Array.isArray(d.topics)       ? d.topics       : [],
+            difficulties: Array.isArray(d.difficulties) ? d.difficulties : [],
+            qTypes:       Array.isArray(d.qTypes)       ? d.qTypes       : [],
+          });
+        }
+      })
       .catch(() => {})
       .finally(() => setFiltersLoading(false));
   }, [board, year]);

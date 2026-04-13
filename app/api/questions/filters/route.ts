@@ -31,22 +31,25 @@ export const GET = withAuth(async (req: NextRequest) => {
     const [
       boards,
       years,
-      chapters,
+      topics,
       difficulties,
+      qTypes,
     ] = await Promise.all([
       Question.distinct('edu_board'),
       Question.distinct('year'),
       Question.distinct('chapter_name', scoped),
       Question.distinct('difficulty_level', scoped),
+      Question.distinct('q_type', scoped),
     ]);
 
-    const sort = (arr: string[]) => arr.filter(Boolean).sort();
+    const sort = (arr: unknown[]) => (arr as string[]).filter(Boolean).sort();
 
     return ok({
       boards:       sort(boards),
       years:        sort(years),
-      chapters:     sort(chapters),
+      topics:       sort(topics),
       difficulties: sort(difficulties),
+      qTypes:       sort(qTypes),
     });
   } catch (err) {
     console.error('[GET /api/questions/filters]', err);
