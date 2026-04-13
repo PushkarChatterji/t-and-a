@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { QuestionCard } from '@/components/questions/QuestionCard';
 import type { QuestionData } from '@/components/questions/QuestionCard';
+import { useAuth } from '@/context/AuthContext';
 
 type AdminTab = 'browser' | 'import';
 
@@ -31,6 +32,7 @@ interface FilterOptions {
 }
 
 function QuestionBrowser() {
+  const { isLoading: authLoading } = useAuth();
   const [questions, setQuestions] = useState<QuestionData[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -50,6 +52,7 @@ function QuestionBrowser() {
   const [message, setMessage] = useState('');
 
   useEffect(() => {
+    if (authLoading) return;
     setFiltersLoading(true);
     const params = new URLSearchParams();
     if (board) params.set('board', board);
@@ -69,7 +72,7 @@ function QuestionBrowser() {
       })
       .catch(() => {})
       .finally(() => setFiltersLoading(false));
-  }, [board, year]);
+  }, [authLoading, board, year]);
 
   const fetchQ = useCallback(async () => {
     setLoading(true);
@@ -91,7 +94,7 @@ function QuestionBrowser() {
     }
   }, [page, board, year, topic, difficulty]);
 
-  useEffect(() => { fetchQ(); }, [fetchQ]);
+  useEffect(() => { if (!authLoading) fetchQ(); }, [authLoading, fetchQ]);
 
   function selectBoard(val: string) { setBoard(val); setYear(''); setTopic(''); setDifficulty(''); setPage(1); }
   function selectYear(val: string)  { setYear(val);  setTopic(''); setDifficulty(''); setPage(1); }

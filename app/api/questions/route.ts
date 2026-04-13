@@ -31,10 +31,18 @@ export const GET = withAuth(async (req: NextRequest) => {
     if (searchParams.get('subject')) filter.subject = searchParams.get('subject');
     if (searchParams.get('difficulty')) filter.difficulty_level = searchParams.get('difficulty');
 
-    const [questions, total] = await Promise.all([
-      Question.find(filter).skip(skip).limit(limit).lean(),
+    const [rawQuestions, total] = await Promise.all([
+      Question.find(filter).skip(skip).limit(limit).lean({ virtuals: false }),
       Question.countDocuments(filter),
     ]);
+
+    // Mongoose Map fields don't serialise via JSON.stringify — flatten them
+    const questions = rawQuestions.map(q => ({
+      ...q,
+      answer_options: q.answer_options instanceof Map
+        ? Object.fromEntries(q.answer_options)
+        : (q.answer_options ?? {}),
+    }));
 
     return ok({ questions, total, page, limit, pages: Math.ceil(total / limit) });
   } catch (err) {
