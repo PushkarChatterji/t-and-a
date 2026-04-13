@@ -33,13 +33,11 @@ export const GET = withAuth(async (req: NextRequest) => {
       years,
       topics,
       difficulties,
-      qTypes,
     ] = await Promise.all([
       Question.distinct('edu_board'),
       Question.distinct('year'),
       Question.distinct('chapter_name', scoped),
       Question.distinct('difficulty_level', scoped),
-      Question.distinct('q_type', scoped),
     ]);
 
     const sort = (arr: unknown[]) => (arr as string[]).filter(Boolean).sort();
@@ -49,7 +47,6 @@ export const GET = withAuth(async (req: NextRequest) => {
       years:        sort(years),
       topics:       sort(topics),
       difficulties: sort(difficulties),
-      qTypes:       sort(qTypes),
     });
   } catch (err) {
     console.error('[GET /api/questions/filters]', err);

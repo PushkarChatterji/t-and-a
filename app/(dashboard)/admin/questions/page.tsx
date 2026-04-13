@@ -2,38 +2,11 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { QuestionCard } from '@/components/questions/QuestionCard';
+import type { QuestionData } from '@/components/questions/QuestionCard';
 
-interface Question {
-  _id: string;
-  // Legacy fields
-  topic?: string;
-  question: string;
-  solution?: string;
-  difficulty_level: string;
-  q_type?: string;
-  q_number?: number;
-  DPS_approved: boolean;
-  isFreeQuestion: boolean;
-  isActive: boolean;
-  education_board?: string;
-  class?: string;
-  subject?: string;
-  // New schema fields
-  edu_board?: string;
-  year?: string;
-  chapter_name?: string;
-  section?: string;
-  section_name?: string;
-  question_number?: number;
-  answer_options?: Record<string, string>;
-  correct_answer_option?: string;
-  solution_explanation?: string;
-}
+type AdminTab = 'browser' | 'import';
 
-type AdminTab = 'browser' | 'import' | 'editor';
-
-const DIFFICULTIES = ['Focus', 'Easy', 'Medium', 'Hard'];
-const Q_TYPES = ['MCQ', 'A-R', 'Case-Study', 'LA', 'SA', 'VSA', 'SUBJECTIVE', 'INTEGRATED'];
+const DIFFICULTIES = ['Focus', 'Practice', 'Challenge'];
 
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
@@ -55,32 +28,27 @@ interface FilterOptions {
   years: string[];
   topics: string[];
   difficulties: string[];
-  qTypes: string[];
 }
 
 function QuestionBrowser() {
-  const [questions, setQuestions] = useState<Question[]>([]);
+  const [questions, setQuestions] = useState<QuestionData[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [filtersLoading, setFiltersLoading] = useState(true);
 
-  // Filter selections — each resets children when changed
   const [board, setBoard] = useState('');
   const [year, setYear] = useState('');
   const [topic, setTopic] = useState('');
   const [difficulty, setDifficulty] = useState('');
-  const [qType, setQType] = useState('');
 
-  // Available options from the server
-  const [opts, setOpts] = useState<FilterOptions>({ boards: [], years: [], topics: [], difficulties: [], qTypes: [] });
+  const [opts, setOpts] = useState<FilterOptions>({ boards: [], years: [], topics: [], difficulties: [] });
 
-  const [previewQ, setPreviewQ] = useState<Question | null>(null);
-  const [editQ, setEditQ] = useState<Question | null>(null);
+  const [previewQ, setPreviewQ] = useState<QuestionData | null>(null);
+  const [editQ, setEditQ] = useState<QuestionData | null>(null);
   const [message, setMessage] = useState('');
 
-  // Fetch filter options whenever board or year changes
   useEffect(() => {
     setFiltersLoading(true);
     const params = new URLSearchParams();
@@ -96,7 +64,6 @@ function QuestionBrowser() {
             years:        Array.isArray(d.years)        ? d.years        : [],
             topics:       Array.isArray(d.topics)       ? d.topics       : [],
             difficulties: Array.isArray(d.difficulties) ? d.difficulties : [],
-            qTypes:       Array.isArray(d.qTypes)       ? d.qTypes       : [],
           });
         }
       })
@@ -112,7 +79,6 @@ function QuestionBrowser() {
       if (year)       params.set('year', year);
       if (topic)      params.set('topic', topic);
       if (difficulty) params.set('difficulty', difficulty);
-      if (qType)      params.set('q_type', qType);
       const res = await fetch(`/api/questions?${params}`, { credentials: 'include' });
       const json = await res.json();
       if (json.success) {
@@ -123,24 +89,19 @@ function QuestionBrowser() {
     } finally {
       setLoading(false);
     }
-  }, [page, board, year, topic, difficulty, qType]);
+  }, [page, board, year, topic, difficulty]);
 
   useEffect(() => { fetchQ(); }, [fetchQ]);
 
-  function selectBoard(val: string) { setBoard(val); setYear(''); setTopic(''); setDifficulty(''); setQType(''); setPage(1); }
-  function selectYear(val: string)  { setYear(val);  setTopic(''); setDifficulty(''); setQType(''); setPage(1); }
-
-  async function toggleApproved(q: Question) {
-    const res = await fetch(`/api/questions/${q._id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ DPS_approved: !q.DPS_approved }),
-    });
-    if (res.ok) { setMessage('Updated.'); fetchQ(); }
-  }
+  function selectBoard(val: string) { setBoard(val); setYear(''); setTopic(''); setDifficulty(''); setPage(1); }
+  function selectYear(val: string)  { setYear(val);  setTopic(''); setDifficulty(''); setPage(1); }
 
   const sel = 'text-sm border border-slate-200 rounded-lg px-3 py-1.5 text-black bg-white disabled:opacity-40';
+
+  const diffColour = (d: string) =>
+    d === 'Focus'    ? 'bg-violet-100 text-violet-700' :
+    d === 'Practice' ? 'bg-amber-100 text-amber-700'   :
+                       'bg-red-100 text-red-700';          // Challenge
 
   return (
     <div>
@@ -148,35 +109,24 @@ function QuestionBrowser() {
 
       {/* Cascading filters */}
       <div className="flex flex-wrap gap-2 mb-4 items-center">
-
-        {/* Board */}
         <select value={board} onChange={e => selectBoard(e.target.value)} className={sel}>
           <option value="">All boards</option>
           {opts.boards.map(b => <option key={b} value={b}>{b}</option>)}
         </select>
 
-        {/* Year — scoped to board */}
         <select value={year} onChange={e => selectYear(e.target.value)} className={sel} disabled={filtersLoading}>
           <option value="">All years</option>
           {opts.years.map(y => <option key={y} value={y}>{y}</option>)}
         </select>
 
-        {/* Topic — scoped to board + year */}
         <select value={topic} onChange={e => { setTopic(e.target.value); setPage(1); }} className={sel} disabled={filtersLoading}>
-          <option value="">All topics</option>
+          <option value="">All chapters</option>
           {opts.topics.map(t => <option key={t} value={t}>{t}</option>)}
         </select>
 
-        {/* Difficulty — scoped to board + year */}
         <select value={difficulty} onChange={e => { setDifficulty(e.target.value); setPage(1); }} className={sel} disabled={filtersLoading}>
           <option value="">All difficulties</option>
-          {opts.difficulties.map(d => <option key={d} value={d}>{d}</option>)}
-        </select>
-
-        {/* Question type — scoped to board + year */}
-        <select value={qType} onChange={e => { setQType(e.target.value); setPage(1); }} className={sel} disabled={filtersLoading}>
-          <option value="">All types</option>
-          {opts.qTypes.map(t => <option key={t} value={t}>{t}</option>)}
+          {DIFFICULTIES.map(d => <option key={d} value={d}>{d}</option>)}
         </select>
 
         <span className="text-xs text-slate-400 self-center ml-auto">{total} questions</span>
@@ -187,43 +137,35 @@ function QuestionBrowser() {
           <thead className="bg-slate-50 border-b border-slate-200">
             <tr>
               <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Q#</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Topic</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Board / Year</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Chapter</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Section</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Difficulty</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Type</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Approved</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Free</th>
               <th className="px-4 py-3" />
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {loading ? (
-              <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-400">Loading…</td></tr>
+              <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400">Loading…</td></tr>
             ) : questions.length === 0 ? (
-              <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-400">No questions found</td></tr>
+              <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400">No questions found</td></tr>
             ) : questions.map(q => (
-              <tr key={q._id} className={`hover:bg-slate-50 ${q.isActive === false ? 'opacity-40' : ''}`}>
-                <td className="px-4 py-3 text-slate-600 font-mono text-xs">{q.question_number ?? q.q_number ?? '—'}</td>
+              <tr key={q._id} className="hover:bg-slate-50">
+                <td className="px-4 py-3 text-slate-600 font-mono text-xs">{q.question_number}</td>
+                <td className="px-4 py-3 text-xs text-slate-600">
+                  <span className="font-medium">{q.edu_board}</span>
+                  <span className="text-slate-400 ml-1">Yr {q.year}</span>
+                </td>
                 <td className="px-4 py-3 text-slate-800 text-xs max-w-[200px]">
-                  <span className="block truncate">{q.chapter_name ?? q.topic ?? '—'}</span>
-                  {q.section_name && <span className="block truncate text-slate-400">{q.section_name}</span>}
+                  <span className="block truncate">{q.chapter_name}</span>
+                </td>
+                <td className="px-4 py-3 text-xs text-slate-500 max-w-[180px]">
+                  <span className="block truncate">{q.section_name}</span>
                 </td>
                 <td className="px-4 py-3">
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${
-                    q.difficulty_level === 'Easy'   ? 'bg-emerald-100 text-emerald-700' :
-                    q.difficulty_level === 'Medium' ? 'bg-amber-100 text-amber-700' :
-                    q.difficulty_level === 'Focus'  ? 'bg-violet-100 text-violet-700' :
-                                                      'bg-red-100 text-red-700'
-                  }`}>{q.difficulty_level}</span>
-                </td>
-                <td className="px-4 py-3 text-xs text-slate-500">{q.q_type ?? (q.answer_options ? 'MCQ' : '—')}</td>
-                <td className="px-4 py-3">
-                  <button onClick={() => toggleApproved(q)}
-                    className={`text-xs px-2 py-0.5 rounded-full ${q.DPS_approved ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-500'}`}>
-                    {q.DPS_approved ? 'Yes' : 'No'}
-                  </button>
-                </td>
-                <td className="px-4 py-3">
-                  {q.isFreeQuestion ? <span className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">Free</span> : <span className="text-xs text-slate-300">—</span>}
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${diffColour(q.difficulty_level)}`}>
+                    {q.difficulty_level}
+                  </span>
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex gap-2 justify-end">
@@ -250,8 +192,8 @@ function QuestionBrowser() {
       )}
 
       {previewQ && (
-        <Modal title={`Q${previewQ.question_number ?? '?'} · ${previewQ.chapter_name ?? ''}`} onClose={() => setPreviewQ(null)}>
-          <QuestionCard question={previewQ as unknown as Parameters<typeof QuestionCard>[0]['question']} />
+        <Modal title={`Q${previewQ.question_number} · ${previewQ.chapter_name}`} onClose={() => setPreviewQ(null)}>
+          <QuestionCard question={previewQ} />
         </Modal>
       )}
 
@@ -267,26 +209,24 @@ function QuestionBrowser() {
 }
 
 // ---- LaTeX Editor ----
-function LatexEditor({ question, onClose, onSaved }: { question: Question; onClose: () => void; onSaved: () => void }) {
+function LatexEditor({ question, onClose, onSaved }: { question: QuestionData; onClose: () => void; onSaved: () => void }) {
   const [qText, setQText] = useState(question.question);
-  const [solText, setSolText] = useState(question.solution_explanation ?? question.solution ?? '');
+  const [solText, setSolText] = useState(question.solution_explanation ?? '');
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
 
-  // Dynamic import KaTeX for preview
   const [html, setHtml] = useState<{ q: string; sol: string }>({ q: '', sol: '' });
 
   useEffect(() => {
     import('katex').then(katex => {
-      const renderText = (text: string) => {
-        return text
+      const renderText = (text: string) =>
+        text
           .replace(/\$\$([\s\S]+?)\$\$/g, (_m, math) => {
             try { return katex.default.renderToString(math, { displayMode: true }); } catch { return `<span class="text-red-500">${math}</span>`; }
           })
           .replace(/\$([^$\n]+?)\$/g, (_m, math) => {
             try { return katex.default.renderToString(math, { displayMode: false }); } catch { return `<span class="text-red-500">${math}</span>`; }
           });
-      };
       setHtml({ q: renderText(qText), sol: renderText(solText) });
     });
   }, [qText, solText]);
@@ -298,7 +238,7 @@ function LatexEditor({ question, onClose, onSaved }: { question: Question; onClo
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ question: qText, solution: solText }),
+        body: JSON.stringify({ question: qText, solution_explanation: solText }),
       });
       if (res.ok) { setMessage('Saved!'); onSaved(); }
       else { const j = await res.json(); setMessage(j.error ?? 'Save failed'); }
@@ -312,7 +252,9 @@ function LatexEditor({ question, onClose, onSaved }: { question: Question; onClo
   return (
     <div className="h-full flex flex-col">
       <div className="flex items-center gap-4 mb-3">
-        <span className="text-xs text-slate-400">Q{question.question_number ?? question.q_number ?? '?'} · {question.chapter_name ?? question.topic ?? ''} · {question.difficulty_level}</span>
+        <span className="text-xs text-slate-400">
+          Q{question.question_number} · {question.chapter_name} · {question.difficulty_level}
+        </span>
         <div className="ml-auto flex gap-2">
           {message && <span className={`text-xs ${message === 'Saved!' ? 'text-emerald-600' : 'text-red-600'}`}>{message}</span>}
           <button onClick={onClose} className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50">Close</button>
@@ -323,7 +265,6 @@ function LatexEditor({ question, onClose, onSaved }: { question: Question; onClo
       </div>
 
       <div className="grid grid-cols-2 gap-4 flex-1 min-h-0">
-        {/* Question editor */}
         <div className="flex flex-col gap-2">
           <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Question (LaTeX)</p>
           <textarea
@@ -336,9 +277,8 @@ function LatexEditor({ question, onClose, onSaved }: { question: Question; onClo
             dangerouslySetInnerHTML={{ __html: html.q }} />
         </div>
 
-        {/* Solution editor */}
         <div className="flex flex-col gap-2">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Solution (LaTeX)</p>
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Solution Explanation (LaTeX)</p>
           <textarea
             value={solText}
             onChange={e => setSolText(e.target.value)}
@@ -353,15 +293,12 @@ function LatexEditor({ question, onClose, onSaved }: { question: Question; onClo
   );
 }
 
-// ---- Edit Question Modal (metadata) ----
-function EditQuestionModal({ question, onClose, onSaved }: { question: Question; onClose: () => void; onSaved: () => void }) {
+// ---- Edit Question Modal ----
+function EditQuestionModal({ question, onClose, onSaved }: { question: QuestionData; onClose: () => void; onSaved: () => void }) {
   const [form, setForm] = useState({
-    topic: question.topic,
+    chapter_name:    question.chapter_name,
+    section_name:    question.section_name,
     difficulty_level: question.difficulty_level,
-    q_type: question.q_type,
-    DPS_approved: question.DPS_approved,
-    isFreeQuestion: question.isFreeQuestion,
-    isActive: question.isActive,
   });
   const [showLatex, setShowLatex] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -393,33 +330,24 @@ function EditQuestionModal({ question, onClose, onSaved }: { question: Question;
   }
 
   return (
-    <Modal title={`Edit Q${question.question_number ?? question.q_number ?? '?'}`} onClose={onClose}>
+    <Modal title={`Edit Q${question.question_number}`} onClose={onClose}>
       <form onSubmit={submit} className="space-y-3">
-        <input value={form.topic} onChange={e => setForm(f => ({ ...f, topic: e.target.value }))}
-          placeholder="Topic" className="text-sm border border-slate-200 rounded-lg px-3 py-2 text-black w-full" />
-        <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="text-xs text-slate-500 mb-1 block">Chapter</label>
+          <input value={form.chapter_name} onChange={e => setForm(f => ({ ...f, chapter_name: e.target.value }))}
+            className="text-sm border border-slate-200 rounded-lg px-3 py-2 text-black w-full" />
+        </div>
+        <div>
+          <label className="text-xs text-slate-500 mb-1 block">Section name</label>
+          <input value={form.section_name} onChange={e => setForm(f => ({ ...f, section_name: e.target.value }))}
+            className="text-sm border border-slate-200 rounded-lg px-3 py-2 text-black w-full" />
+        </div>
+        <div>
+          <label className="text-xs text-slate-500 mb-1 block">Difficulty</label>
           <select value={form.difficulty_level} onChange={e => setForm(f => ({ ...f, difficulty_level: e.target.value }))}
-            className="text-sm border border-slate-200 rounded-lg px-3 py-2 text-black">
+            className="text-sm border border-slate-200 rounded-lg px-3 py-2 text-black w-full">
             {DIFFICULTIES.map(d => <option key={d} value={d}>{d}</option>)}
           </select>
-          <select value={form.q_type} onChange={e => setForm(f => ({ ...f, q_type: e.target.value }))}
-            className="text-sm border border-slate-200 rounded-lg px-3 py-2 text-black">
-            {Q_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-          </select>
-        </div>
-        <div className="flex gap-4">
-          <label className="flex items-center gap-2 text-sm text-slate-700">
-            <input type="checkbox" checked={form.DPS_approved} onChange={e => setForm(f => ({ ...f, DPS_approved: e.target.checked }))} />
-            Approved
-          </label>
-          <label className="flex items-center gap-2 text-sm text-slate-700">
-            <input type="checkbox" checked={form.isFreeQuestion} onChange={e => setForm(f => ({ ...f, isFreeQuestion: e.target.checked }))} />
-            Free Question
-          </label>
-          <label className="flex items-center gap-2 text-sm text-slate-700">
-            <input type="checkbox" checked={form.isActive} onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))} />
-            Active
-          </label>
         </div>
         <div className="flex justify-between pt-2">
           <button type="button" onClick={() => setShowLatex(true)}
@@ -459,7 +387,6 @@ function BulkImport() {
     try {
       let questions: unknown[];
       const parsed = JSON.parse(jsonText);
-      // Support both array and { questions: [...] }
       if (Array.isArray(parsed)) questions = parsed;
       else if (Array.isArray(parsed.questions)) questions = parsed.questions;
       else { setResult({ inserted: 0, updated: 0, skipped: 0, errors: ['JSON must be an array or { questions: [...] }'] }); return; }
@@ -483,9 +410,10 @@ function BulkImport() {
   return (
     <div className="max-w-3xl">
       <p className="text-sm text-slate-600 mb-4">
-        Paste a JSON array of questions, or upload a JSON file. Each question must have:
-        <code className="text-xs bg-slate-100 px-1 rounded ml-1">topic, question, solution, q_type, difficulty_level</code>.
-        <span className="ml-1">Approved questions will automatically have <code className="text-xs bg-slate-100 px-1 rounded">isFreeQuestion</code> flagged (2E+2M+1H per topic by lowest q_number).</span>
+        Paste a JSON array of questions or upload a JSON file. Required fields:
+        <code className="text-xs bg-slate-100 px-1 rounded ml-1">
+          edu_board, year, subject, chapter_name, section, section_name, question_number, question, answer_options, correct_answer_option, solution_explanation, difficulty_level
+        </code>
       </p>
 
       <div className="flex items-center gap-3 mb-3">
@@ -500,7 +428,7 @@ function BulkImport() {
       <textarea
         value={jsonText}
         onChange={e => setJsonText(e.target.value)}
-        placeholder='[{"topic":"Relations and Functions","question":"Let $f(x)=...$","solution":"...","q_type":"MCQ","difficulty_level":"Easy","q_number":1}]'
+        placeholder='[{"edu_board":"CIE","year":"8","subject":"Maths","chapter_name":"Integers","section":"1.1","section_name":"Factors, multiples and primes","question_number":1,"question":"Which is prime?","answer_options":{"A":"17","B":"21"},"correct_answer_option":"A","solution_explanation":"...","difficulty_level":"Focus"}]'
         className="w-full h-48 text-xs font-mono border border-slate-200 rounded-lg p-3 text-black focus:outline-none focus:ring-2 focus:ring-indigo-300 mb-3"
       />
 
@@ -553,17 +481,16 @@ export default function AdminQuestionsPage() {
         <h1 className="text-2xl font-bold text-slate-900">Questions</h1>
       </div>
 
-      {/* Tabs */}
       <div className="flex gap-1 mb-6 bg-slate-100 p-1 rounded-lg w-fit">
-        {(['browser', 'import', 'editor'] as AdminTab[]).map(t => (
+        {(['browser', 'import'] as AdminTab[]).map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors capitalize ${
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
               tab === t ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
             }`}
           >
-            {t === 'browser' ? 'Question Bank' : t === 'import' ? 'Bulk Import' : 'LaTeX Editor'}
+            {t === 'browser' ? 'Question Bank' : 'Bulk Import'}
           </button>
         ))}
       </div>
@@ -571,11 +498,6 @@ export default function AdminQuestionsPage() {
       <div className="flex-1 min-h-0">
         {tab === 'browser' && <QuestionBrowser />}
         {tab === 'import' && <BulkImport />}
-        {tab === 'editor' && (
-          <div className="bg-slate-50 border border-slate-200 rounded-xl p-8 text-center text-slate-500 text-sm">
-            Select a question from the Question Bank tab and click &ldquo;Edit LaTeX&rdquo; to open the editor.
-          </div>
-        )}
       </div>
     </div>
   );

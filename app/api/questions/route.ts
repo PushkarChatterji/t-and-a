@@ -30,7 +30,6 @@ export const GET = withAuth(async (req: NextRequest) => {
 
     if (searchParams.get('subject')) filter.subject = searchParams.get('subject');
     if (searchParams.get('difficulty')) filter.difficulty_level = searchParams.get('difficulty');
-    if (searchParams.get('q_type')) filter.q_type = searchParams.get('q_type');
 
     const [questions, total] = await Promise.all([
       Question.find(filter).skip(skip).limit(limit).lean(),
