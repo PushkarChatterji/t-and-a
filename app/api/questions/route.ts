@@ -1,27 +1,27 @@
 import { NextRequest } from 'next/server';
 import { connectDB } from '@/lib/db/connection';
 import Question from '@/lib/db/models/Question';
-import { withAuth } from '@/lib/auth/middleware';
+import User from '@/lib/db/models/User';
+import { withAuth, getRequestUser } from '@/lib/auth/middleware';
 import { ok, serverError } from '@/lib/utils/api-response';
 
 export const GET = withAuth(async (req: NextRequest) => {
   try {
     await connectDB();
     const { searchParams } = new URL(req.url);
+    const jwtUser = getRequestUser(req)!;
 
     const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10));
     const limit = Math.min(100, parseInt(searchParams.get('limit') ?? '20', 10));
     const skip = (page - 1) * limit;
 
     const filter: Record<string, unknown> = {};
-
     const andClauses: Record<string, unknown>[] = [];
 
-    const board = searchParams.get('board');
-    if (board) andClauses.push({ edu_board: board });
-
-    const year = searchParams.get('year');
-    if (year) andClauses.push({ year });
+    // Look up the student's own board and class from the DB — never trust client params
+    const dbUser = await User.findById(jwtUser.sub).select('boardOfEducation class').lean();
+    if (dbUser?.boardOfEducation) andClauses.push({ edu_board: dbUser.boardOfEducation });
+    if (dbUser?.class) andClauses.push({ year: dbUser.class });
 
     const topic = searchParams.get('topic');
     if (topic) andClauses.push({ chapter_name: topic });

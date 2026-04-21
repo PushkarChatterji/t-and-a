@@ -48,7 +48,7 @@ export default function PracticePage() {
 
   // Fetch questions
   const fetchQuestions = useCallback(async () => {
-    if (!topic) return;
+    if (!topic || !user) return;
     setLoading(true);
     setError('');
     try {
@@ -67,7 +67,7 @@ export default function PracticePage() {
     } finally {
       setLoading(false);
     }
-  }, [topic, filterDifficulty, user?.boardOfEducation, user?.class, user?.subject]);
+  }, [topic, filterDifficulty, user]);
 
   // Fetch existing progress to restore answer state
   const fetchProgress = useCallback(async () => {
@@ -86,7 +86,7 @@ export default function PracticePage() {
   }, [topic]);
 
   const fetchAdaptive = useCallback(async () => {
-    if (!topic) return;
+    if (!topic || !user) return;
     try {
       const params = new URLSearchParams({ topic });
       if (user?.boardOfEducation) params.set('board', user.boardOfEducation);
@@ -97,7 +97,7 @@ export default function PracticePage() {
       const json = await res.json();
       setAdaptiveQuestion(json.data.question ?? null);
     } catch {}
-  }, [topic, user?.boardOfEducation, user?.class, user?.subject]);
+  }, [topic, user]);
 
   useEffect(() => { fetchQuestions(); fetchProgress(); }, [fetchQuestions, fetchProgress]);
   useEffect(() => { if (adaptiveMode) fetchAdaptive(); }, [adaptiveMode, fetchAdaptive]);
