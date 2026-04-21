@@ -54,6 +54,9 @@ export default function PracticePage() {
     try {
       const params = new URLSearchParams({ topic, limit: '100' });
       if (filterDifficulty) params.set('difficulty', filterDifficulty);
+      if (user?.boardOfEducation) params.set('board', user.boardOfEducation);
+      if (user?.class) params.set('year', user.class);
+      if (user?.subject) params.set('subject', user.subject);
       const res = await fetch(`/api/questions?${params}`, { credentials: 'include' });
       if (!res.ok) throw new Error('Failed to load questions');
       const json = await res.json();
@@ -64,7 +67,7 @@ export default function PracticePage() {
     } finally {
       setLoading(false);
     }
-  }, [topic, filterDifficulty]);
+  }, [topic, filterDifficulty, user?.boardOfEducation, user?.class, user?.subject]);
 
   // Fetch existing progress to restore answer state
   const fetchProgress = useCallback(async () => {
@@ -85,12 +88,16 @@ export default function PracticePage() {
   const fetchAdaptive = useCallback(async () => {
     if (!topic) return;
     try {
-      const res = await fetch(`/api/student-progress/adaptive?topic=${encodeURIComponent(topic)}`, { credentials: 'include' });
+      const params = new URLSearchParams({ topic });
+      if (user?.boardOfEducation) params.set('board', user.boardOfEducation);
+      if (user?.class) params.set('year', user.class);
+      if (user?.subject) params.set('subject', user.subject);
+      const res = await fetch(`/api/student-progress/adaptive?${params}`, { credentials: 'include' });
       if (!res.ok) return;
       const json = await res.json();
       setAdaptiveQuestion(json.data.question ?? null);
     } catch {}
-  }, [topic]);
+  }, [topic, user?.boardOfEducation, user?.class, user?.subject]);
 
   useEffect(() => { fetchQuestions(); fetchProgress(); }, [fetchQuestions, fetchProgress]);
   useEffect(() => { if (adaptiveMode) fetchAdaptive(); }, [adaptiveMode, fetchAdaptive]);
