@@ -71,13 +71,16 @@ export default function AssignmentPracticePage() {
 
   async function saveProgress(questionId: string, status: 'done' | 'need_help') {
     try {
-      await fetch('/api/student-progress', {
+      const res = await fetch('/api/student-progress', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ questionId, status, questionListId: id }),
       });
-    } catch {}
+      if (!res.ok) console.error('saveProgress failed', res.status);
+    } catch (e) {
+      console.error('saveProgress error', e);
+    }
   }
 
   function handleNext() {
@@ -192,6 +195,7 @@ export default function AssignmentPracticePage() {
             question={currentQuestion}
             onNext={handleNext}
             onSkip={handleSkip}
+            onAnswer={(qId, correct) => saveProgress(qId, correct ? 'done' : 'need_help')}
             questionIndex={currentIdx}
             totalQuestions={questions.length}
           />

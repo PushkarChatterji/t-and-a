@@ -108,13 +108,16 @@ export default function PracticePage() {
     const answerState: AnswerState = correct ? 'correct' : 'incorrect';
     setAnswers(prev => ({ ...prev, [questionId]: answerState }));
     try {
-      await fetch('/api/student-progress', {
+      const res = await fetch('/api/student-progress', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ questionId, status }),
       });
-    } catch {}
+      if (!res.ok) console.error('saveProgress failed', res.status);
+    } catch (e) {
+      console.error('saveProgress error', e);
+    }
   }
 
   function handleNext() {

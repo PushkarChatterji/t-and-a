@@ -79,7 +79,7 @@ export async function getNextAdaptiveQuestion(opts: AdaptiveOptions): Promise<Ad
   // IDs already attempted
   const attemptedProgress = await StudentProgress.find({
     userId,
-    status: { $in: ['done', 'need_clarification', 'need_help'] },
+    status: { $in: ['done', 'need_help'] },
   }).lean();
   const attemptedIds = attemptedProgress.map(p => p.questionId);
 
