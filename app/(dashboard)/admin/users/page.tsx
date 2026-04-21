@@ -269,8 +269,9 @@ export default function AdminUsersPage() {
 }
 
 function CreateUserModal({ onClose, onCreated, onError }: { onClose: () => void; onCreated: () => void; onError: (e: string) => void }) {
-  const [form, setForm] = useState({ email: '', password: '', firstName: '', lastName: '', gender: 'm', country: 'India', role: 'individual_student', boardOfEducation: '' });
+  const [form, setForm] = useState({ email: '', password: '', firstName: '', lastName: '', gender: 'm', country: 'India', role: 'individual_student', boardOfEducation: '', class: '' });
   const [boards, setBoards] = useState<string[]>([]);
+  const [years, setYears] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -284,6 +285,18 @@ function CreateUserModal({ onClose, onCreated, onError }: { onClose: () => void;
       })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!form.boardOfEducation) return;
+    fetch(`/api/questions/years?board=${encodeURIComponent(form.boardOfEducation)}`, { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(json => {
+        const list: string[] = json?.data ?? [];
+        setYears(list);
+        setForm(f => ({ ...f, class: list[list.length - 1] ?? '' }));
+      })
+      .catch(() => {});
+  }, [form.boardOfEducation]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -329,16 +342,29 @@ function CreateUserModal({ onClose, onCreated, onError }: { onClose: () => void;
             {ROLES.map(r => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
           </select>
         </div>
-        <select
-          value={form.boardOfEducation}
-          onChange={e => setForm(f => ({ ...f, boardOfEducation: e.target.value }))}
-          className="text-sm border border-slate-200 rounded-lg px-3 py-2 text-black w-full"
-        >
-          {boards.length === 0
-            ? <option value="">Loading boards…</option>
-            : boards.map(b => <option key={b} value={b}>{b}</option>)
-          }
-        </select>
+        <div className="grid grid-cols-2 gap-3">
+          <select
+            value={form.boardOfEducation}
+            onChange={e => setForm(f => ({ ...f, boardOfEducation: e.target.value, class: '' }))}
+            className="text-sm border border-slate-200 rounded-lg px-3 py-2 text-black w-full"
+          >
+            {boards.length === 0
+              ? <option value="">Loading boards…</option>
+              : boards.map(b => <option key={b} value={b}>{b}</option>)
+            }
+          </select>
+          <select
+            value={form.class}
+            onChange={e => setForm(f => ({ ...f, class: e.target.value }))}
+            disabled={years.length === 0}
+            className="text-sm border border-slate-200 rounded-lg px-3 py-2 text-black w-full disabled:opacity-50"
+          >
+            {years.length === 0
+              ? <option value="">Loading years…</option>
+              : years.map(y => <option key={y} value={y}>{y}</option>)
+            }
+          </select>
+        </div>
         <input placeholder="Country" value={form.country} onChange={e => setForm(f => ({ ...f, country: e.target.value }))}
           className="text-sm border border-slate-200 rounded-lg px-3 py-2 text-black w-full" />
         <div className="flex justify-end gap-2 pt-2">
@@ -529,18 +555,22 @@ function EditUserModal({ user, onClose, onSaved, onError }: { user: User; onClos
       .finally(() => setLoadingUser(false));
   }, [user._id]);
 
-  // Fetch filter options
+  // Fetch boards
   useEffect(() => {
-    fetch('/api/questions/filters', { credentials: 'include' })
+    fetch('/api/questions/boards', { credentials: 'include' })
       .then(r => r.ok ? r.json() : null)
-      .then(json => {
-        if (json?.data) {
-          setBoards(json.data.boards ?? []);
-          setYears(json.data.years ?? []);
-        }
-      })
+      .then(json => { if (json?.data) setBoards(json.data); })
       .catch(() => {});
   }, []);
+
+  // Fetch years scoped to the selected board
+  useEffect(() => {
+    if (!form.boardOfEducation) return;
+    fetch(`/api/questions/years?board=${encodeURIComponent(form.boardOfEducation)}`, { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(json => { if (json?.data) setYears(json.data); })
+      .catch(() => {});
+  }, [form.boardOfEducation]);
 
   // Subject is set by the user — show a static display list
   useEffect(() => {
@@ -690,7 +720,7 @@ function EditUserModal({ user, onClose, onSaved, onError }: { user: User; onClos
               <div className="grid grid-cols-3 gap-3 mb-3">
                 <div>
                   <label className={label}>Board</label>
-                  <select value={form.boardOfEducation} onChange={e => setForm(f => ({ ...f, boardOfEducation: e.target.value }))} className={inp}>
+                  <select value={form.boardOfEducation} onChange={e => setForm(f => ({ ...f, boardOfEducation: e.target.value, class: '' }))} className={inp}>
                     <option value="">— none —</option>
                     {boards.map(b => <option key={b} value={b}>{b}</option>)}
                   </select>

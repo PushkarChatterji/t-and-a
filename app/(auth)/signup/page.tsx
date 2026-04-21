@@ -1,10 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
-const BOARDS = ['CBSE', 'ICSE', 'State Board'];
 const COUNTRIES = ['India', 'UAE', 'USA', 'UK', 'Singapore', 'Other'];
 
 export default function SignupPage() {
@@ -17,18 +16,48 @@ export default function SignupPage() {
     password: '',
     confirmPassword: '',
     country: 'India',
-    boardOfEducation: 'CBSE',
-    class: 'XII',
+    boardOfEducation: '',
+    class: '',
   });
+  const [boards, setBoards] = useState<string[]>([]);
+  const [years, setYears] = useState<string[]>([]);
   const [boardWarning, setBoardWarning] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
+  // Load available boards on mount
+  useEffect(() => {
+    fetch('/api/questions/boards')
+      .then(r => r.ok ? r.json() : null)
+      .then(json => {
+        const list: string[] = json?.data ?? [];
+        setBoards(list);
+        if (list.length > 0) setForm(f => ({ ...f, boardOfEducation: list[0] }));
+      })
+      .catch(() => {});
+  }, []);
+
+  // Load years whenever board changes
+  useEffect(() => {
+    if (!form.boardOfEducation) return;
+    fetch(`/api/questions/years?board=${encodeURIComponent(form.boardOfEducation)}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(json => {
+        const list: string[] = json?.data ?? [];
+        setYears(list);
+        setForm(f => ({ ...f, class: list[list.length - 1] ?? '' }));
+      })
+      .catch(() => {});
+  }, [form.boardOfEducation]);
+
   function set(field: string, value: string) {
-    if (field === 'boardOfEducation' && value !== 'CBSE') setBoardWarning(true);
-    else if (field === 'boardOfEducation') setBoardWarning(false);
-    setForm(f => ({ ...f, [field]: value }));
+    if (field === 'boardOfEducation') {
+      setBoardWarning(value !== 'CBSE');
+      setForm(f => ({ ...f, boardOfEducation: value, class: '' }));
+    } else {
+      setForm(f => ({ ...f, [field]: value }));
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -40,6 +69,10 @@ export default function SignupPage() {
     }
     if (!form.gender) {
       setError('Please select your gender');
+      return;
+    }
+    if (!form.class) {
+      setError('Please select your year / class');
       return;
     }
     setLoading(true);
@@ -192,9 +225,21 @@ export default function SignupPage() {
               onChange={e => set('boardOfEducation', e.target.value)}
               className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
             >
-              {BOARDS.map(b => <option key={b}>{b}</option>)}
+              {boards.map(b => <option key={b}>{b}</option>)}
             </select>
           </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Year / Class</label>
+          <select
+            value={form.class}
+            onChange={e => set('class', e.target.value)}
+            disabled={years.length === 0}
+            className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white disabled:opacity-50"
+          >
+            {years.map(y => <option key={y} value={y}>{y}</option>)}
+          </select>
         </div>
 
         {boardWarning && (
